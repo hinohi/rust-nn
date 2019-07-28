@@ -14,6 +14,10 @@ pub trait Layer {
     fn output_len(&self) -> Option<usize> {
         None
     }
+
+    fn append<L: Layer>(self, other: L) -> Layers<Self, L>
+    where
+        Self: Sized;
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -67,6 +71,10 @@ where
             self.layer1.output_len()
         }
     }
+
+    fn append<L: Layer>(self, other: L) -> Layers<Self, L> {
+        Layers::new(self, other)
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -92,6 +100,10 @@ impl Layer for Dense {
     fn output_len(&self) -> Option<usize> {
         Some(self.w.shape()[0])
     }
+
+    fn append<L: Layer>(self, other: L) -> Layers<Self, L> {
+        Layers::new(self, other)
+    }
 }
 
 impl Dense {
@@ -101,10 +113,6 @@ impl Dense {
             w: Array2::from_shape_fn(shape, |_| normal.sample(random)),
             b: Array1::zeros(shape.1),
         }
-    }
-
-    pub fn append<L: Layer>(self, other: L) -> Layers<Self, L> {
-        Layers::new(self, other)
     }
 }
 
@@ -121,15 +129,15 @@ impl Layer for ReLU {
             }
         });
     }
+
+    fn append<L: Layer>(self, other: L) -> Layers<Self, L> {
+        Layers::new(self, other)
+    }
 }
 
 impl ReLU {
     pub fn new() -> ReLU {
         ReLU {}
-    }
-
-    pub fn append<L: Layer>(self, other: L) -> Layers<Self, L> {
-        Layers::new(self, other)
     }
 }
 
