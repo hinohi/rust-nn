@@ -44,8 +44,13 @@ impl Dense {
             input: Array2::zeros((batch, shape.0)),
             grad_w: Array2::zeros(shape),
             grad_b: Array1::zeros(shape.1),
-            learning_rate: 0.01,
+            learning_rate: 1.0 / 128.0,
         }
+    }
+
+    pub fn with_learning_rate(&mut self, learning_rate: Float) -> &mut Dense {
+        self.learning_rate = learning_rate;
+        self
     }
 }
 
