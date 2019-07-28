@@ -1,23 +1,24 @@
 use ndarray::{Array1, Array2, Zip};
-use rand::Rng;
-use rand_distr::{Distribution, Normal};
 
 type Float = f64;
 
 pub trait Layer {
     fn forward(&mut self, input: &Array1<Float>, output: &mut Array1<Float>);
 
-    fn input_len(&self) -> Option<usize> {
+    fn input_size(&self) -> Option<usize> {
         None
     }
 
-    fn output_len(&self) -> Option<usize> {
+    fn output_size(&self) -> Option<usize> {
         None
     }
 
     fn append<L: Layer>(self, other: L) -> Layers<Self, L>
     where
-        Self: Sized;
+        Self: Sized,
+    {
+        Layers::new(self, other)
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -37,7 +38,7 @@ where
     L2: Layer,
 {
     fn new(layer1: L1, layer2: L2) -> Layers<L1, L2> {
-        let size = match (layer1.output_len(), layer2.input_len()) {
+        let size = match (layer1.output_size(), layer2.input_size()) {
             (Some(size), None) | (None, Some(size)) => size,
             (Some(s1), Some(s2)) if s1 == s2 => s1,
             _ => panic!(),
@@ -60,20 +61,16 @@ where
         self.layer2.forward(&self.temporary, output);
     }
 
-    fn input_len(&self) -> Option<usize> {
-        self.layer1.input_len()
+    fn input_size(&self) -> Option<usize> {
+        self.layer1.input_size()
     }
 
-    fn output_len(&self) -> Option<usize> {
-        if let Some(size) = self.layer2.output_len() {
+    fn output_size(&self) -> Option<usize> {
+        if let Some(size) = self.layer2.output_size() {
             Some(size)
         } else {
-            self.layer1.output_len()
+            self.layer1.output_size()
         }
-    }
-
-    fn append<L: Layer>(self, other: L) -> Layers<Self, L> {
-        Layers::new(self, other)
     }
 }
 
@@ -93,26 +90,12 @@ impl Layer for Dense {
             });
     }
 
-    fn input_len(&self) -> Option<usize> {
+    fn input_size(&self) -> Option<usize> {
         Some(self.w.shape()[1])
     }
 
-    fn output_len(&self) -> Option<usize> {
+    fn output_size(&self) -> Option<usize> {
         Some(self.w.shape()[0])
-    }
-
-    fn append<L: Layer>(self, other: L) -> Layers<Self, L> {
-        Layers::new(self, other)
-    }
-}
-
-impl Dense {
-    pub fn from_normal<R: Rng>(random: &mut R, shape: (usize, usize), sig: Float) -> Dense {
-        let normal = Normal::new(0.0, sig).unwrap();
-        Dense {
-            w: Array2::from_shape_fn(shape, |_| normal.sample(random)),
-            b: Array1::zeros(shape.1),
-        }
     }
 }
 
@@ -128,10 +111,6 @@ impl Layer for ReLU {
                 *y = 0.0;
             }
         });
-    }
-
-    fn append<L: Layer>(self, other: L) -> Layers<Self, L> {
-        Layers::new(self, other)
     }
 }
 
@@ -184,7 +163,7 @@ mod tests {
         let mut output = arr1(&[0.0, 0.0, 0.0]);
         l.forward(&input, &mut output);
         assert_eq!(output, arr1(&[0.5 + 3.0 + 2.0, 0.0, 3.5]));
-        assert_eq!(l.input_len(), Some(2));
-        assert_eq!(l.output_len(), Some(3));
+        assert_eq!(l.input_size(), Some(2));
+        assert_eq!(l.output_size(), Some(3));
     }
 }
