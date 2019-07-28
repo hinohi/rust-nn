@@ -1,3 +1,2 @@
-mod layer;
-
-pub use layer::*;
+pub mod predict;
+pub mod train;
