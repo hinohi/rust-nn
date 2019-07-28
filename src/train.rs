@@ -9,6 +9,8 @@ pub trait Layer {
 
     fn backward(&mut self, input: &Array2<Float>, output: &mut Array2<Float>);
 
+    fn update(&mut self);
+
     fn input_size(&self) -> Option<usize> {
         None
     }
@@ -25,6 +27,7 @@ pub struct Dense {
     input: Array2<Float>,
     grad_w: Array2<Float>,
     grad_b: Array1<Float>,
+    learning_rate: Float,
 }
 
 impl Dense {
@@ -41,6 +44,7 @@ impl Dense {
             input: Array2::zeros((batch, shape.0)),
             grad_w: Array2::zeros(shape),
             grad_b: Array1::zeros(shape.1),
+            learning_rate: 0.01,
         }
     }
 }
@@ -59,6 +63,7 @@ impl Layer for Dense {
                     });
             });
     }
+
     fn backward(&mut self, input: &Array2<Float>, output: &mut Array2<Float>) {
         // Zero fill (Any more good way?)
         Zip::from(&mut self.grad_w).apply(|w| *w = 0.0);
@@ -94,6 +99,16 @@ impl Layer for Dense {
             });
     }
 
+    fn update(&mut self) {
+        let r = self.learning_rate / self.input.shape()[0] as Float;
+        Zip::from(&mut self.w)
+            .and(&self.grad_w)
+            .apply(|x, &d| *x += d * r);
+        Zip::from(&mut self.b)
+            .and(&self.grad_b)
+            .apply(|x, &d| *x += d * r);
+    }
+
     fn input_size(&self) -> Option<usize> {
         Some(self.w.shape()[1])
     }
@@ -116,6 +131,7 @@ mod tests {
             input: Array2::zeros((4, 2)),
             grad_w: Array2::zeros((3, 2)),
             grad_b: Array1::zeros(3),
+            learning_rate: 0.01,
         };
         let input = arr2(&[[0.5, -1.5], [0.0, 2.0], [1.0, 10.0], [-3.0, -4.0]]);
         let mut output = Array2::zeros((4, 3));
@@ -173,5 +189,6 @@ mod tests {
                 ]
             ])
         );
+        dense.update();
     }
 }
