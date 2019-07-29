@@ -5,7 +5,9 @@ authors = ["Daiju Nakayama <42.daiju@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-ndarray = "*"
+ndarray = { version = "*", features = ["serde-1"] }
 rand = "*"
 rand_distr = "*"
 rand_pcg = "*"
+serde = { version ="1.0", features = ["derive"] }
+rmp-serde = "*"

@@ -1,4 +1,4 @@
-use ndarray::arr2;
+use ndarray::{arr1, arr2};
 use rand::Rng;
 use rand_pcg::Mcg128Xsl64;
 use rust_nn::train::*;
@@ -7,7 +7,7 @@ fn main() {
     let mut random = Mcg128Xsl64::new(1);
 
     let batch_size = 100;
-    let mut model = NNRegression::new(&[2, 5, 5], batch_size, 8e-3);
+    let mut model = NN1Regression::new([2, 5], batch_size, 8e-3);
 
     for epoch in 1..=100000 {
         // make data

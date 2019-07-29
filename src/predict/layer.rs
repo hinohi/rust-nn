@@ -1,9 +1,11 @@
+use std::io::Read;
+
 use ndarray::{Array1, Array2, Zip};
 
 type Float = f64;
 
 /// 予測用のレイヤインターフェース
-pub trait Layer {
+pub trait Layer: Sized {
     fn forward(&mut self, input: &Array1<Float>, output: &mut Array1<Float>);
 
     fn input_size(&self) -> Option<usize> {
@@ -13,15 +15,13 @@ pub trait Layer {
     fn output_size(&self) -> Option<usize> {
         None
     }
+
+    fn decode<R: Read>(reader: &mut R) -> Self;
 }
 
 /// レイヤを合成したレイヤ
 #[derive(Debug, Clone, PartialEq)]
-pub struct Layers<L1, L2>
-where
-    L1: Layer,
-    L2: Layer,
-{
+pub struct Layers<L1, L2> {
     layer1: L1,
     layer2: L2,
     temporary: Array1<Float>,
@@ -67,6 +67,12 @@ where
             self.layer1.output_size()
         }
     }
+
+    fn decode<R: Read>(reader: &mut R) -> Self {
+        let layer1 = L1::decode(reader);
+        let layer2 = L2::decode(reader);
+        Layers::new(layer1, layer2)
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -87,6 +93,11 @@ impl Layer for Affine {
 
     fn output_size(&self) -> Option<usize> {
         Some(self.w.shape()[0])
+    }
+
+    fn decode<R: Read>(reader: &mut R) -> Self {
+        let w = rmp_serde::decode::from_read(reader).unwrap();
+        Affine { w }
     }
 }
 
@@ -111,6 +122,11 @@ impl Layer for Bias {
 
     fn output_size(&self) -> Option<usize> {
         Some(self.b.len())
+    }
+
+    fn decode<R: Read>(reader: &mut R) -> Self {
+        let b = rmp_serde::decode::from_read(reader).unwrap();
+        Bias { b }
     }
 }
 
@@ -137,6 +153,12 @@ impl Layer for Dense {
     fn output_size(&self) -> Option<usize> {
         Some(self.w.shape()[0])
     }
+
+    fn decode<R: Read>(reader: &mut R) -> Self {
+        let a = Affine::decode(reader);
+        let b = Bias::decode(reader);
+        a.synthesize(b)
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -151,6 +173,10 @@ impl Layer for ReLU {
                 *y = 0.0;
             }
         });
+    }
+
+    fn decode<R: Read>(_: &mut R) -> Self {
+        ReLU {}
     }
 }
 

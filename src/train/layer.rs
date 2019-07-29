@@ -1,3 +1,5 @@
+use std::io::Write;
+
 use ndarray::{Array1, Array2, Zip};
 use rand::Rng;
 use rand_distr::{Distribution, Normal};
@@ -22,6 +24,8 @@ pub trait Layer {
     fn batch_size(&self) -> Option<usize> {
         None
     }
+
+    fn encode<W: Write>(&self, writer: &mut W);
 }
 
 /// レイヤを合成したレイヤ
@@ -98,6 +102,11 @@ where
         } else {
             self.layer1.batch_size()
         }
+    }
+
+    fn encode<W: Write>(&self, writer: &mut W) {
+        self.layer1.encode(writer);
+        self.layer2.encode(writer);
     }
 }
 
@@ -207,6 +216,11 @@ impl Layer for Dense {
     fn batch_size(&self) -> Option<usize> {
         Some(self.input.shape()[0])
     }
+
+    fn encode<W: Write>(&self, writer: &mut W) {
+        rmp_serde::encode::write(writer, &self.w).unwrap();
+        rmp_serde::encode::write(writer, &self.b).unwrap();
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -254,6 +268,7 @@ impl Layer for ReLU {
     fn batch_size(&self) -> Option<usize> {
         Some(self.input.shape()[0])
     }
+    fn encode<W: Write>(&self, _: &mut W) {}
 }
 
 impl ReLU {
