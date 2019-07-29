@@ -1,4 +1,4 @@
-use ndarray::{arr1, arr2};
+use ndarray::arr2;
 use rand::Rng;
 use rand_pcg::Mcg128Xsl64;
 use rust_nn::train::*;
