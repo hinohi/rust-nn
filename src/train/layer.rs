@@ -45,7 +45,7 @@ where
         let size = match (layer1.output_size(), layer2.input_size()) {
             (Some(size), None) | (None, Some(size)) => size,
             (Some(s1), Some(s2)) if s1 == s2 => s1,
-            _ => panic!(),
+            (a, b) => panic!("missmatch: out={:?} in={:?}", a, b),
         };
         let batch = match (layer1.batch_size(), layer2.batch_size()) {
             (Some(size), None) | (None, Some(size)) => size,
@@ -114,22 +114,23 @@ pub struct Dense {
 impl Dense {
     pub fn from_normal<R: Rng>(
         random: &mut R,
-        shape: (usize, usize),
-        batch: usize,
+        input_size: usize,
+        output_size: usize,
+        batch_size: usize,
         sig: Float,
     ) -> Dense {
         let normal = Normal::new(0.0, sig).unwrap();
         Dense {
-            w: Array2::from_shape_fn(shape, |_| normal.sample(random)),
-            b: Array1::zeros(shape.1),
-            input: Array2::zeros((batch, shape.0)),
-            grad_w: Array2::zeros(shape),
-            grad_b: Array1::zeros(shape.1),
+            w: Array2::from_shape_fn((output_size, input_size), |_| normal.sample(random)),
+            b: Array1::zeros(output_size),
+            input: Array2::zeros((batch_size, input_size)),
+            grad_w: Array2::zeros((output_size, input_size)),
+            grad_b: Array1::zeros(output_size),
             learning_rate: 1.0 / 128.0,
         }
     }
 
-    pub fn with_learning_rate(&mut self, learning_rate: Float) -> &mut Dense {
+    pub fn with_learning_rate(mut self, learning_rate: Float) -> Dense {
         self.learning_rate = learning_rate;
         self
     }
