@@ -13,8 +13,8 @@ fn main() {
         1,
         batch_size,
         1.0,
-        SGD::new(1e-3, batch_size),
-        SGD::new(1e-3, batch_size),
+        SGD::default(),
+        SGD::default(),
     );
 
     for epoch in 1..=1000 {

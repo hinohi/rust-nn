@@ -22,9 +22,7 @@ pub trait Layer {
         None
     }
 
-    fn batch_size(&self) -> Option<usize> {
-        None
-    }
+    fn batch_size(&self) -> usize;
 
     fn encode<W: Write>(&self, writer: &mut W);
 }
@@ -50,12 +48,16 @@ where
         let size = match (layer1.output_size(), layer2.input_size()) {
             (Some(size), None) | (None, Some(size)) => size,
             (Some(s1), Some(s2)) if s1 == s2 => s1,
-            (a, b) => panic!("missmatch: out={:?} in={:?}", a, b),
+            (a, b) => panic!("Mismatch: out={:?} in={:?}", a, b),
         };
-        let batch = match (layer1.batch_size(), layer2.batch_size()) {
-            (Some(size), None) | (None, Some(size)) => size,
-            (Some(s1), Some(s2)) if s1 == s2 => s1,
-            _ => panic!(),
+        let batch = if layer1.batch_size() == layer2.batch_size() {
+            layer2.batch_size()
+        } else {
+            panic!(
+                "Mismatch: {} != {}",
+                layer1.batch_size(),
+                layer2.batch_size()
+            );
         };
         Layers {
             layer1,
@@ -97,12 +99,8 @@ where
         }
     }
 
-    fn batch_size(&self) -> Option<usize> {
-        if let Some(size) = self.layer2.batch_size() {
-            Some(size)
-        } else {
-            self.layer1.batch_size()
-        }
+    fn batch_size(&self) -> usize {
+        self.layer2.batch_size()
     }
 
     fn encode<W: Write>(&self, writer: &mut W) {
@@ -200,8 +198,9 @@ where
     }
 
     fn update(&mut self) {
-        self.opt_w.optimize(&mut self.w, &self.grad_w);
-        self.opt_b.optimize(&mut self.b, &self.grad_b);
+        let batch_size = self.batch_size();
+        self.opt_w.optimize(&mut self.w, &self.grad_w, batch_size);
+        self.opt_b.optimize(&mut self.b, &self.grad_b, batch_size);
     }
 
     fn input_size(&self) -> Option<usize> {
@@ -212,8 +211,8 @@ where
         Some(self.w.shape()[0])
     }
 
-    fn batch_size(&self) -> Option<usize> {
-        Some(self.input.shape()[0])
+    fn batch_size(&self) -> usize {
+        self.input.shape()[0]
     }
 
     fn encode<W: Write>(&self, writer: &mut W) {
@@ -264,9 +263,10 @@ impl Layer for ReLU {
         Some(self.input.shape()[1])
     }
 
-    fn batch_size(&self) -> Option<usize> {
-        Some(self.input.shape()[0])
+    fn batch_size(&self) -> usize {
+        self.input.shape()[0]
     }
+
     fn encode<W: Write>(&self, _: &mut W) {}
 }
 
@@ -309,12 +309,12 @@ mod tests {
             input: Array2::zeros((4, 2)),
             grad_w: Array2::zeros((3, 2)),
             grad_b: Array1::zeros(3),
-            opt_w: SGD::new(0.01, 4),
-            opt_b: SGD::new(0.01, 4),
+            opt_w: SGD::default(),
+            opt_b: SGD::default(),
         };
         assert_eq!(dense.input_size(), Some(2));
         assert_eq!(dense.output_size(), Some(3));
-        assert_eq!(dense.batch_size(), Some(4));
+        assert_eq!(dense.batch_size(), 4);
         let input = arr2(&[[0.5, -1.5], [0.0, 2.0], [1.0, 10.0], [-3.0, -4.0]]);
         let mut output = Array2::zeros((4, 3));
         dense.forward(&input, &mut output);
@@ -379,7 +379,7 @@ mod tests {
         let mut relu = ReLU::new(2, 4);
         assert_eq!(relu.input_size(), Some(2));
         assert_eq!(relu.output_size(), Some(2));
-        assert_eq!(relu.batch_size(), Some(4));
+        assert_eq!(relu.batch_size(), 4);
         let input = arr2(&[[1.0, 1.0], [2.0, 3.0], [-0.5, 0.0], [-2.0, -3.0]]);
         let mut output = Array2::zeros((4, 2));
         relu.forward(&input, &mut output);
@@ -405,14 +405,14 @@ mod tests {
             input: Array2::zeros((4, 2)),
             grad_w: Array2::zeros((3, 2)),
             grad_b: Array1::zeros(3),
-            opt_w: SGD::new(0.01, 4),
-            opt_b: SGD::new(0.01, 4),
+            opt_w: SGD::default(),
+            opt_b: SGD::default(),
         };
-        let relu = ReLU::new(dense.output_size().unwrap(), dense.batch_size().unwrap());
+        let relu = ReLU::new(dense.output_size().unwrap(), dense.batch_size());
         let mut l = dense.synthesize(relu);
         assert_eq!(l.input_size(), Some(2));
         assert_eq!(l.output_size(), Some(3));
-        assert_eq!(l.batch_size(), Some(4));
+        assert_eq!(l.batch_size(), 4);
 
         let input = arr2(&[[0.5, -1.5], [0.0, 2.0], [1.0, 10.0], [-3.0, -4.0]]);
         let mut output = Array2::zeros((4, 3));

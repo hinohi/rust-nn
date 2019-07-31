@@ -176,7 +176,7 @@ where
             });
         self.nn.backward(&self.grad, &mut self.input);
         self.nn.update();
-        loss / self.nn.batch_size().unwrap() as Float
+        loss / self.nn.batch_size() as Float
     }
 
     pub fn get_inner(&self) -> &impl Layer {
@@ -242,7 +242,7 @@ macro_rules! impl_nn {
                     });
                 self.nn.backward(&self.grad, &mut self.input);
                 self.nn.update();
-                loss / self.nn.batch_size().unwrap() as Float
+                loss / self.nn.batch_size() as Float
             }
 
             pub fn get_inner(&self) -> &impl Layer {
@@ -264,29 +264,14 @@ mod tests {
     #[test]
     fn smoke() {
         let batch_size = 5;
-        let _ = NN1Regression::new(
-            [10, 20],
-            batch_size,
-            SGD::new(1e-3, batch_size),
-            SGD::new(1e-3, batch_size),
-        );
-        let _ = NN2Regression::new(
-            [10, 20, 15],
-            batch_size,
-            SGD::new(1e-3, batch_size),
-            SGD::new(1e-3, batch_size),
-        );
-        let _ = NN3Regression::new(
-            [10, 20, 5, 15],
-            batch_size,
-            SGD::new(1e-3, batch_size),
-            SGD::new(1e-3, batch_size),
-        );
+        let _ = NN1Regression::new([10, 20], batch_size, SGD::default(), SGD::default());
+        let _ = NN2Regression::new([10, 20, 15], batch_size, SGD::default(), SGD::default());
+        let _ = NN3Regression::new([10, 20, 5, 15], batch_size, SGD::default(), SGD::default());
         let _ = NN4Regression::new(
             [2, 4, 8, 16, 32],
             batch_size,
-            SGD::new(1e-3, batch_size),
-            SGD::new(1e-3, batch_size),
+            SGD::default(),
+            SGD::default(),
         );
     }
 }
