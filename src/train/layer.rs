@@ -120,7 +120,11 @@ pub struct Dense<Ow, Ob> {
     opt_b: Ob,
 }
 
-impl<Ow, Ob> Dense<Ow, Ob> {
+impl<Ow, Ob> Dense<Ow, Ob>
+where
+    Ow: Optimizer<Ix2>,
+    Ob: Optimizer<Ix1>,
+{
     pub fn from_normal<R: Rng>(
         random: &mut R,
         input_size: usize,
@@ -130,6 +134,11 @@ impl<Ow, Ob> Dense<Ow, Ob> {
         opt_w: Ow,
         opt_b: Ob,
     ) -> Dense<Ow, Ob> {
+        let mut opt_w = opt_w;
+        let mut opt_b = opt_b;
+        opt_w.init((output_size, input_size), batch_size);
+        opt_b.init(output_size, batch_size);
+
         let normal = Normal::new(0.0, sig).unwrap();
         Dense {
             w: Array2::from_shape_fn((output_size, input_size), |_| normal.sample(random)),
@@ -198,9 +207,8 @@ where
     }
 
     fn update(&mut self) {
-        let batch_size = self.batch_size();
-        self.opt_w.optimize(&mut self.w, &self.grad_w, batch_size);
-        self.opt_b.optimize(&mut self.b, &self.grad_b, batch_size);
+        self.opt_w.optimize(&mut self.w, &self.grad_w);
+        self.opt_b.optimize(&mut self.b, &self.grad_b);
     }
 
     fn input_size(&self) -> Option<usize> {

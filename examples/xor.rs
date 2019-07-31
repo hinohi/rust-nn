@@ -7,7 +7,7 @@ fn main() {
     let mut random = Mcg128Xsl64::new(1);
 
     let batch_size = 100;
-    let mut model = NN1Regression::new([2, 5], batch_size, SGD::default(), SGD::default());
+    let mut model = NN1Regression::new([2, 5], batch_size, Adam::default(), Adam::default());
 
     for epoch in 1..=100000 {
         // make data
