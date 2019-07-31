@@ -13,8 +13,8 @@ fn main() {
         1,
         batch_size,
         1.0,
-        SGD::new(0.01, batch_size),
-        SGD::new(0.01, batch_size),
+        SGD::new(1e-3, batch_size),
+        SGD::new(1e-3, batch_size),
     );
 
     for epoch in 1..=1000 {
@@ -40,7 +40,7 @@ fn main() {
             let mut grad = Vec::with_capacity(batch_size);
             for (&ans, output) in ans.iter().zip(output.genrows()) {
                 // MSE
-                let x = ans - output[0];
+                let x = output[0] - ans;
                 loss += x * x * 0.5;
                 grad.push([x]);
             }
