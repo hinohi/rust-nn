@@ -28,6 +28,11 @@ impl<D> SGD<D> {
             dim: PhantomData,
         }
     }
+
+    pub fn learning_rate(mut self, learning_rate: Float) -> Self {
+        self.learning_rate = learning_rate;
+        self
+    }
 }
 
 impl<D> Default for SGD<D> {
@@ -84,6 +89,26 @@ where
             m: Default::default(),
             v: Default::default(),
         }
+    }
+
+    pub fn alpha(mut self, alpha: Float) -> Self {
+        self.alpha = alpha;
+        self
+    }
+
+    pub fn beta1(mut self, beta1: Float) -> Self {
+        self.beta1 = beta1;
+        self
+    }
+
+    pub fn beta2(mut self, beta2: Float) -> Self {
+        self.beta2 = beta2;
+        self
+    }
+
+    pub fn eps(mut self, eps: Float) -> Self {
+        self.eps = eps;
+        self
     }
 
     fn learning_rate(&self) -> Float {

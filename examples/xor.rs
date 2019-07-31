@@ -10,7 +10,7 @@ fn main() {
     let mut model = NN4Regression::new(
         [2, 8, 8, 8, 8],
         batch_size,
-        Adam::default(),
+        Adam::default().alpha(1e-4),
         Adam::default(),
     );
 
