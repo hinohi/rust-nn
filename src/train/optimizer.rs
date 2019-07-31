@@ -60,6 +60,91 @@ where
 }
 
 #[derive(Debug, Clone)]
+pub struct AdaDelta<D>
+where
+    D: Dimension,
+{
+    rho: Float,
+    eps: Float,
+    batch_factor: Float,
+    h: Array<Float, D>,
+    s: Array<Float, D>,
+}
+
+impl<D> AdaDelta<D>
+where
+    D: Dimension,
+{
+    pub fn new(rho: Float, eps: Float) -> AdaDelta<D> {
+        AdaDelta {
+            rho,
+            eps,
+            batch_factor: 1.0,
+            h: Default::default(),
+            s: Default::default(),
+        }
+    }
+
+    pub fn rho(mut self, rho: Float) -> Self {
+        self.rho = rho;
+        self
+    }
+
+    pub fn eps(mut self, eps: Float) -> Self {
+        self.eps = eps;
+        self
+    }
+}
+
+impl<D> Default for AdaDelta<D>
+where
+    D: Dimension,
+{
+    fn default() -> AdaDelta<D> {
+        AdaDelta::new(0.95, 1e-6)
+    }
+}
+
+impl<D> Optimizer<D> for AdaDelta<D>
+where
+    D: Dimension,
+{
+    fn init<Sh>(&mut self, shape: Sh, batch_size: usize)
+    where
+        Sh: ShapeBuilder<Dim = D>,
+    {
+        let shape = shape.into_shape();
+        self.h = Array::zeros(shape.clone());
+        self.s = Array::zeros(shape);
+        self.batch_factor = 1.0 / batch_size as Float;
+    }
+
+    fn optimize(&mut self, param: &mut Array<Float, D>, grad: &Array<Float, D>) {
+        // h = ρ * h + (1 - ρ) * grad * grad
+        let rho = self.rho;
+        let rho_g = (1.0 - self.rho) * self.batch_factor * self.batch_factor;
+        Zip::from(&mut self.h).and(grad).apply(|h, &g| {
+            *h = rho * *h + rho_g * g * g;
+        });
+        // v = sqrt(s + e) / sqrt(h + e) * grad
+        // s = ρ * s + (1 - ρ) * v * v
+        // p -= v
+        let eps = self.eps;
+        let rho1 = 1.0 - self.rho;
+        let batch_factor = self.batch_factor;
+        Zip::from(param)
+            .and(&mut self.s)
+            .and(&self.h)
+            .and(grad)
+            .apply(|p, s, &h, &g| {
+                let v = ((*s + eps) / (h + eps)).sqrt() * g * batch_factor;
+                *s = rho * *s + rho1 * v * v;
+                *p -= v;
+            });
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct Adam<D>
 where
     D: Dimension,
