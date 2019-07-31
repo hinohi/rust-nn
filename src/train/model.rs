@@ -3,6 +3,7 @@ use rand::{Rng, SeedableRng};
 use rand_pcg::Mcg128Xsl64;
 
 use super::layer::*;
+use crate::Float;
 
 type DenseNN1 = Layers<Dense, ReLU>;
 type DenseNN2 = Layers<Layers<DenseNN1, Dense>, ReLU>;

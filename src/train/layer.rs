@@ -4,7 +4,7 @@ use ndarray::{Array1, Array2, Zip};
 use rand::Rng;
 use rand_distr::{Distribution, Normal};
 
-pub type Float = f64;
+use crate::Float;
 
 pub trait Layer {
     fn forward(&mut self, input: &Array2<Float>, output: &mut Array2<Float>);

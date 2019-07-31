@@ -2,7 +2,7 @@ use std::io::Read;
 
 use ndarray::{Array1, Array2, Zip};
 
-type Float = f64;
+use crate::Float;
 
 /// 予測用のレイヤインターフェース
 pub trait Layer: Sized {
