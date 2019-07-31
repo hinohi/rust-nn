@@ -10,8 +10,8 @@ type DenseNN2<Ow, Ob> = Layers<Layers<DenseNN1<Ow, Ob>, Dense<Ow, Ob>>, ReLU>;
 type DenseNN3<Ow, Ob> = Layers<Layers<DenseNN2<Ow, Ob>, Dense<Ow, Ob>>, ReLU>;
 type DenseNN4<Ow, Ob> = Layers<Layers<DenseNN3<Ow, Ob>, Dense<Ow, Ob>>, ReLU>;
 
-fn he_sig(n: usize) -> f64 {
-    (2.0 / n as f64).sqrt()
+fn he_sig(n: usize) -> Float {
+    (2.0 / n as Float).sqrt()
 }
 
 #[derive(Debug, Clone, PartialEq)]

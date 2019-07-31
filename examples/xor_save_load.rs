@@ -4,6 +4,7 @@ use rand_pcg::Mcg128Xsl64;
 
 use rust_nn::predict::{Dense, Layer as PLayer, ReLU, Synthesize};
 use rust_nn::train::{Layer as TLayer, NN1Regression, SGD};
+use rust_nn::Float;
 
 fn main() {
     let mut random = Mcg128Xsl64::new(1);
@@ -41,9 +42,9 @@ fn main() {
     // 検証
     let mut output = arr1(&[0.0]);
     for x in -100..=100 {
-        let x = f64::from(x) / 100.0;
+        let x = x as Float / 100.0;
         for y in -100..=100 {
-            let y = f64::from(y) / 100.0;
+            let y = y as Float / 100.0;
             model.forward(&mut arr1(&[x, y]), &mut output);
             println!("{} {} {}", x, y, output[0]);
         }

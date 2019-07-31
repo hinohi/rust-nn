@@ -6,10 +6,15 @@ use rust_nn::train::*;
 fn main() {
     let mut random = Mcg128Xsl64::new(1);
 
-    let batch_size = 100;
-    let mut model = NN1Regression::new([2, 5], batch_size, Adam::default(), Adam::default());
+    let batch_size = 1000;
+    let mut model = NN4Regression::new(
+        [2, 8, 8, 8, 8],
+        batch_size,
+        Adam::default(),
+        Adam::default(),
+    );
 
-    for epoch in 1..=100000 {
+    for epoch in 1..=10000 {
         // make data
         let (x, t) = {
             let mut x = Vec::with_capacity(batch_size);

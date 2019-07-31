@@ -2,6 +2,7 @@ use ndarray::{arr2, Array2};
 use rand::Rng;
 use rand_pcg::Mcg128Xsl64;
 use rust_nn::train::*;
+use rust_nn::Float;
 
 fn main() {
     let mut random = Mcg128Xsl64::new(1);
@@ -44,7 +45,7 @@ fn main() {
                 loss += x * x * 0.5;
                 grad.push([x]);
             }
-            (loss / batch_size as f64, arr2(&grad))
+            (loss / batch_size as Float, arr2(&grad))
         };
 
         model.backward(&grad, &mut Array2::zeros((batch_size, 1)));

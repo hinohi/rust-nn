@@ -89,7 +89,7 @@ where
     fn learning_rate(&self) -> Float {
         let fix1 = 1.0 - self.beta1.powf(self.time_step);
         let fix2 = 1.0 - self.beta2.powf(self.time_step);
-        self.alpha as f64 * fix2.sqrt() / fix1
+        self.alpha * fix2.sqrt() / fix1
     }
 }
 
