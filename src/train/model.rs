@@ -213,7 +213,7 @@ macro_rules! impl_nn {
                     ));
                 $name {
                     nn,
-                    input: Array2::zeros((batch_size, shape[$n - 1])),
+                    input: Array2::zeros((batch_size, shape[0])),
                     output: Array2::zeros((batch_size, 1)),
                     grad: Array2::zeros((batch_size, 1)),
                 }
@@ -259,19 +259,25 @@ impl_nn!(NN4Regression, build_nn4, 4);
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::train::SGD;
+    use crate::train::{Adam, SGD};
+    use ndarray::arr2;
 
     #[test]
     fn smoke() {
-        let batch_size = 5;
-        let _ = NN1Regression::new([10, 20], batch_size, SGD::default(), SGD::default());
-        let _ = NN2Regression::new([10, 20, 15], batch_size, SGD::default(), SGD::default());
-        let _ = NN3Regression::new([10, 20, 5, 15], batch_size, SGD::default(), SGD::default());
-        let _ = NN4Regression::new(
+        let batch_size = 1;
+        let mut nn = NN1Regression::new([2, 20], batch_size, SGD::default(), Adam::default());
+        nn.train(&arr2(&[[1.0, 2.0]]), &arr2(&[[3.0]]));
+        let mut nn = NN2Regression::new([2, 20, 15], batch_size, Adam::default(), SGD::default());
+        nn.train(&arr2(&[[1.0, 2.0]]), &arr2(&[[3.0]]));
+        let mut nn =
+            NN3Regression::new([2, 20, 5, 15], batch_size, SGD::default(), Adam::default());
+        nn.train(&arr2(&[[1.0, 2.0]]), &arr2(&[[3.0]]));
+        let mut nn = NN4Regression::new(
             [2, 4, 8, 16, 32],
             batch_size,
-            SGD::default(),
+            Adam::default(),
             SGD::default(),
         );
+        nn.train(&arr2(&[[1.0, 2.0]]), &arr2(&[[3.0]]));
     }
 }
