@@ -1,9 +1,10 @@
 use std::io::Write;
 
-use ndarray::{Array1, Array2, Zip};
+use ndarray::{Array1, Array2, Ix1, Ix2, Zip};
 use rand::Rng;
 use rand_distr::{Distribution, Normal};
 
+use super::optimizer::Optimizer;
 use crate::Float;
 
 pub trait Layer {
@@ -111,23 +112,26 @@ where
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct Dense {
+pub struct Dense<Ow, Ob> {
     w: Array2<Float>,
     b: Array1<Float>,
     input: Array2<Float>,
     grad_w: Array2<Float>,
     grad_b: Array1<Float>,
-    learning_rate: Float,
+    opt_w: Ow,
+    opt_b: Ob,
 }
 
-impl Dense {
+impl<Ow, Ob> Dense<Ow, Ob> {
     pub fn from_normal<R: Rng>(
         random: &mut R,
         input_size: usize,
         output_size: usize,
         batch_size: usize,
         sig: Float,
-    ) -> Dense {
+        opt_w: Ow,
+        opt_b: Ob,
+    ) -> Dense<Ow, Ob> {
         let normal = Normal::new(0.0, sig).unwrap();
         Dense {
             w: Array2::from_shape_fn((output_size, input_size), |_| normal.sample(random)),
@@ -135,17 +139,17 @@ impl Dense {
             input: Array2::zeros((batch_size, input_size)),
             grad_w: Array2::zeros((output_size, input_size)),
             grad_b: Array1::zeros(output_size),
-            learning_rate: 1.0 / 128.0,
+            opt_w,
+            opt_b,
         }
-    }
-
-    pub fn with_learning_rate(mut self, learning_rate: Float) -> Dense {
-        self.learning_rate = learning_rate;
-        self
     }
 }
 
-impl Layer for Dense {
+impl<Ow, Ob> Layer for Dense<Ow, Ob>
+where
+    Ow: Optimizer<Ix2>,
+    Ob: Optimizer<Ix1>,
+{
     fn forward(&mut self, input: &Array2<Float>, output: &mut Array2<Float>) {
         Zip::from(&mut self.input).and(input).apply(|x, &y| *x = y);
         Zip::from(output.genrows_mut())
@@ -196,13 +200,8 @@ impl Layer for Dense {
     }
 
     fn update(&mut self) {
-        let r = self.learning_rate / self.batch_size().unwrap() as Float;
-        Zip::from(&mut self.w)
-            .and(&self.grad_w)
-            .apply(|x, &d| *x += d * r);
-        Zip::from(&mut self.b)
-            .and(&self.grad_b)
-            .apply(|x, &d| *x += d * r);
+        self.opt_w.optimize(&mut self.w, &self.grad_w);
+        self.opt_b.optimize(&mut self.b, &self.grad_b);
     }
 
     fn input_size(&self) -> Option<usize> {
@@ -299,6 +298,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::train::SGD;
     use ndarray::{arr1, arr2};
 
     #[test]
@@ -309,7 +309,8 @@ mod tests {
             input: Array2::zeros((4, 2)),
             grad_w: Array2::zeros((3, 2)),
             grad_b: Array1::zeros(3),
-            learning_rate: 0.01,
+            opt_w: SGD::new(0.01, 4),
+            opt_b: SGD::new(0.01, 4),
         };
         assert_eq!(dense.input_size(), Some(2));
         assert_eq!(dense.output_size(), Some(3));
@@ -404,7 +405,8 @@ mod tests {
             input: Array2::zeros((4, 2)),
             grad_w: Array2::zeros((3, 2)),
             grad_b: Array1::zeros(3),
-            learning_rate: 0.01,
+            opt_w: SGD::new(0.01, 4),
+            opt_b: SGD::new(0.01, 4),
         };
         let relu = ReLU::new(dense.output_size().unwrap(), dense.batch_size().unwrap());
         let mut l = dense.synthesize(relu);

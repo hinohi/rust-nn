@@ -3,13 +3,18 @@ use rand::Rng;
 use rand_pcg::Mcg128Xsl64;
 
 use rust_nn::predict::{Dense, Layer as PLayer, ReLU, Synthesize};
-use rust_nn::train::{Layer as TLayer, NN1Regression};
+use rust_nn::train::{Layer as TLayer, NN1Regression, SGD};
 
 fn main() {
     let mut random = Mcg128Xsl64::new(1);
 
     let batch_size = 100;
-    let mut model = NN1Regression::new([2, 5], batch_size, 8e-3);
+    let mut model = NN1Regression::new(
+        [2, 5],
+        batch_size,
+        SGD::new(1e-3, batch_size),
+        SGD::new(1e-3, batch_size),
+    );
 
     for _ in 1..=100000 {
         // make data

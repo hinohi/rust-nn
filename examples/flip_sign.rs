@@ -7,8 +7,15 @@ fn main() {
     let mut random = Mcg128Xsl64::new(1);
 
     let batch_size = 50;
-    let mut model =
-        Dense::from_normal(&mut random, 1, 1, batch_size, 1.0).with_learning_rate(1.0 / 1024.0);
+    let mut model = Dense::from_normal(
+        &mut random,
+        1,
+        1,
+        batch_size,
+        1.0,
+        SGD::new(0.01, batch_size),
+        SGD::new(0.01, batch_size),
+    );
 
     for epoch in 1..=1000 {
         // make data
