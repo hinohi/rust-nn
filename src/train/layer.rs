@@ -160,6 +160,10 @@ where
     ) -> Self {
         let input_size = w.shape()[1];
         let output_size = w.shape()[0];
+        let mut opt_w = opt_w;
+        let mut opt_b = opt_b;
+        opt_w.init((output_size, input_size), batch_size);
+        opt_b.init(output_size, batch_size);
         Dense {
             w,
             b,
