@@ -235,9 +235,9 @@ where
         Zip::from(&mut self.m)
             .and(grad)
             .apply(|m, &g| *m = beta * *m + beta_g * g);
-        // v_{t+1} = beta1 * v_{t} + (1 - beta2) * grad * grad
-        let beta = self.beta1;
-        let beta_g = (1.0 - self.beta1) * self.batch_factor * self.batch_factor;
+        // v_{t+1} = beta2 * v_{t} + (1 - beta2) * grad * grad
+        let beta = self.beta2;
+        let beta_g = (1.0 - self.beta2) * self.batch_factor * self.batch_factor;
         Zip::from(&mut self.v)
             .and(grad)
             .apply(|v, &g| *v = beta * *v + beta_g * g * g);
