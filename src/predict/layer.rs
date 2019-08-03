@@ -1,6 +1,6 @@
 use std::io::Read;
 
-use ndarray::{Array1, Array2, Zip};
+use ndarray::{Array1, Array2, Ix1, Ix2, Zip};
 
 use crate::Float;
 
@@ -158,6 +158,21 @@ impl Layer for Dense {
         let a = Affine::decode(reader);
         let b = Bias::decode(reader);
         a.synthesize(b)
+    }
+}
+
+impl Dense {
+    pub fn into_train<Ow, Ob>(
+        self,
+        batch_size: usize,
+        opt_w: Ow,
+        opt_b: Ob,
+    ) -> crate::train::Dense<Ow, Ob>
+    where
+        Ow: crate::train::Optimizer<Ix2>,
+        Ob: crate::train::Optimizer<Ix1>,
+    {
+        crate::train::Dense::new(self.w, self.b, batch_size, opt_w, opt_b)
     }
 }
 

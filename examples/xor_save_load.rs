@@ -2,17 +2,19 @@ use ndarray::{arr1, arr2};
 use rand::Rng;
 use rand_pcg::Mcg128Xsl64;
 
-use rust_nn::predict::{Dense, Layer as PLayer, ReLU, Synthesize};
-use rust_nn::train::{Layer as TLayer, NN1Regression, SGD};
 use rust_nn::Float;
+use rust_nn::{
+    predict,
+    train::{self, SGD},
+};
 
 fn main() {
     let mut random = Mcg128Xsl64::new(1);
 
     let batch_size = 100;
-    let mut model = NN1Regression::new([2, 5], batch_size, SGD::default(), SGD::default());
+    let mut model = train::NN1Regression::new([2, 5], batch_size, SGD::default(), SGD::default());
 
-    for _ in 1..=100000 {
+    for _ in 1..=10000 {
         // make data
         let (x, t) = {
             let mut x = Vec::with_capacity(batch_size);
@@ -31,23 +33,28 @@ fn main() {
 
     // save
     let mut writer = Vec::new();
-    model.get_inner().encode(&mut writer);
-    let mut reader = &writer[..];
+    model.encode(&mut writer);
 
     // load
-    let model = Dense::decode(&mut reader);
-    let model = model.synthesize(ReLU::decode(&mut reader));
-    let mut model = model.synthesize(Dense::decode(&mut reader));
+    let mut model = {
+        let mut reader = &writer[..];
+        predict::NN1Regression::new(&mut reader)
+    };
 
     // 検証
-    let mut output = arr1(&[0.0]);
     for x in -100..=100 {
         let x = x as Float / 100.0;
         for y in -100..=100 {
             let y = y as Float / 100.0;
-            model.forward(&mut arr1(&[x, y]), &mut output);
-            println!("{} {} {}", x, y, output[0]);
+            let t = model.predict(&mut arr1(&[x, y]));
+            println!("{} {} {}", x, y, t);
         }
         print!("\n\n");
     }
+
+    // load for train
+    let _ = {
+        let mut reader = &writer[..];
+        train::NN1Regression::decode(&mut reader, batch_size * 2, SGD::default(), SGD::default())
+    };
 }

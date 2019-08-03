@@ -150,6 +150,26 @@ where
             opt_b,
         }
     }
+
+    pub fn new(
+        w: Array2<Float>,
+        b: Array1<Float>,
+        batch_size: usize,
+        opt_w: Ow,
+        opt_b: Ob,
+    ) -> Self {
+        let input_size = w.shape()[1];
+        let output_size = w.shape()[0];
+        Dense {
+            w,
+            b,
+            input: Array2::zeros((batch_size, input_size)),
+            grad_w: Array2::zeros((output_size, input_size)),
+            grad_b: Array1::zeros(output_size),
+            opt_w,
+            opt_b,
+        }
+    }
 }
 
 impl<Ow, Ob> Layer for Dense<Ow, Ob>

@@ -1,3 +1,5 @@
+use std::io::{Read, Write};
+
 use ndarray::{Array2, Ix1, Ix2, Zip};
 use rand::{Rng, SeedableRng};
 use rand_pcg::Mcg128Xsl64;
@@ -119,6 +121,59 @@ clone_build_nn!(build_nn2, DenseNN2, build_nn1, 2);
 clone_build_nn!(build_nn3, DenseNN3, build_nn2, 3);
 clone_build_nn!(build_nn4, DenseNN4, build_nn3, 4);
 
+fn decode_nn1<R, Ow, Ob>(
+    reader: &mut R,
+    batch_size: usize,
+    opt_w: Ow,
+    opt_b: Ob,
+) -> DenseNN1<Ow, Ob>
+where
+    R: Read,
+    Ow: Optimizer<Ix2>,
+    Ob: Optimizer<Ix1>,
+{
+    use crate::predict::{Dense as PredictDense, Layer as PredictLayer};
+    let dense = PredictDense::decode(reader).into_train(batch_size, opt_w, opt_b);
+    let relu = ReLU::new(dense.output_size().unwrap(), batch_size);
+    dense.synthesize(relu)
+}
+
+macro_rules! clone_decode_nn {
+    ($func:ident, $ret:ident, $call:ident) => {
+        fn $func<R, Ow, Ob>(reader: &mut R, batch_size: usize, opt_w: Ow, opt_b: Ob) -> $ret<Ow, Ob>
+        where
+            R: Read,
+            Ow: Optimizer<Ix2> + Clone,
+            Ob: Optimizer<Ix1> + Clone,
+        {
+            use crate::predict::{Dense as PredictDense, Layer as PredictLayer};
+            let nn = $call(reader, batch_size, opt_w.clone(), opt_b.clone());
+            let dense = PredictDense::decode(reader).into_train(batch_size, opt_w, opt_b);
+            let relu = ReLU::new(dense.output_size().unwrap(), batch_size);
+            nn.synthesize(dense).synthesize(relu)
+        }
+    };
+}
+
+clone_decode_nn!(decode_nn2, DenseNN2, decode_nn1);
+clone_decode_nn!(decode_nn3, DenseNN3, decode_nn2);
+clone_decode_nn!(decode_nn4, DenseNN4, decode_nn3);
+
+fn decode_output<R, Ow, Ob>(
+    reader: &mut R,
+    batch_size: usize,
+    opt_w: Ow,
+    opt_b: Ob,
+) -> Dense<Ow, Ob>
+where
+    R: Read,
+    Ow: Optimizer<Ix2>,
+    Ob: Optimizer<Ix1>,
+{
+    use crate::predict::{Dense as PredictDense, Layer as PredictLayer};
+    PredictDense::decode(reader).into_train(batch_size, opt_w, opt_b)
+}
+
 impl<Ow, Ob> NN1Regression<Ow, Ob>
 where
     Ow: Optimizer<Ix2> + Clone,
@@ -179,13 +234,30 @@ where
         loss / self.nn.batch_size() as Float
     }
 
-    pub fn get_inner(&self) -> &impl Layer {
-        &self.nn
+    pub fn decode<R: Read>(
+        reader: &mut R,
+        batch_size: usize,
+        opt_w: Ow,
+        opt_b: Ob,
+    ) -> NN1Regression<Ow, Ob> {
+        let nn = decode_nn1(reader, batch_size, opt_w.clone(), opt_b.clone())
+            .synthesize(decode_output(reader, batch_size, opt_w, opt_b));
+        let input_size = nn.input_size().unwrap();
+        NN1Regression {
+            nn,
+            input: Array2::zeros((batch_size, input_size)),
+            output: Array2::zeros((batch_size, 1)),
+            grad: Array2::zeros((batch_size, 1)),
+        }
+    }
+
+    pub fn encode<W: Write>(&self, writer: &mut W) {
+        self.nn.encode(writer);
     }
 }
 
 macro_rules! impl_nn {
-    ($name:ident, $builder:ident, $n:expr) => {
+    ($name:ident, $builder:ident, $decoder:ident, $n:expr) => {
         impl<Ow, Ob> $name<Ow, Ob>
         where
             Ow: Optimizer<Ix2> + Clone,
@@ -229,6 +301,23 @@ macro_rules! impl_nn {
                 Self::with_random(&mut random, shape, batch_size, opt_w, opt_b)
             }
 
+            pub fn decode<R: Read>(
+                reader: &mut R,
+                batch_size: usize,
+                opt_w: Ow,
+                opt_b: Ob,
+            ) -> $name<Ow, Ob> {
+                let nn = $decoder(reader, batch_size, opt_w.clone(), opt_b.clone())
+                    .synthesize(decode_output(reader, batch_size, opt_w, opt_b));
+                let input_size = nn.input_size().unwrap();
+                $name {
+                    nn,
+                    input: Array2::zeros((batch_size, input_size)),
+                    output: Array2::zeros((batch_size, 1)),
+                    grad: Array2::zeros((batch_size, 1)),
+                }
+            }
+
             pub fn train(&mut self, x: &Array2<Float>, t: &Array2<Float>) -> Float {
                 self.nn.forward(x, &mut self.output);
                 let mut loss = 0.0;
@@ -245,16 +334,16 @@ macro_rules! impl_nn {
                 loss / self.nn.batch_size() as Float
             }
 
-            pub fn get_inner(&self) -> &impl Layer {
-                &self.nn
+            pub fn encode<W: Write>(&self, writer: &mut W) {
+                self.nn.encode(writer);
             }
         }
     };
 }
 
-impl_nn!(NN2Regression, build_nn2, 2);
-impl_nn!(NN3Regression, build_nn3, 3);
-impl_nn!(NN4Regression, build_nn4, 4);
+impl_nn!(NN2Regression, build_nn2, decode_nn2, 2);
+impl_nn!(NN3Regression, build_nn3, decode_nn3, 3);
+impl_nn!(NN4Regression, build_nn4, decode_nn4, 4);
 
 #[cfg(test)]
 mod tests {
