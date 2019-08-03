@@ -11,6 +11,8 @@ type DenseNN1<Ow, Ob> = Layers<Dense<Ow, Ob>, ReLU>;
 type DenseNN2<Ow, Ob> = Layers<Layers<DenseNN1<Ow, Ob>, Dense<Ow, Ob>>, ReLU>;
 type DenseNN3<Ow, Ob> = Layers<Layers<DenseNN2<Ow, Ob>, Dense<Ow, Ob>>, ReLU>;
 type DenseNN4<Ow, Ob> = Layers<Layers<DenseNN3<Ow, Ob>, Dense<Ow, Ob>>, ReLU>;
+type DenseNN5<Ow, Ob> = Layers<Layers<DenseNN4<Ow, Ob>, Dense<Ow, Ob>>, ReLU>;
+type DenseNN6<Ow, Ob> = Layers<Layers<DenseNN5<Ow, Ob>, Dense<Ow, Ob>>, ReLU>;
 
 fn he_sig(n: usize) -> Float {
     (2.0 / n as Float).sqrt()
@@ -59,6 +61,30 @@ where
     Ob: Optimizer<Ix1>,
 {
     nn: Layers<DenseNN4<Ow, Ob>, Dense<Ow, Ob>>,
+    input: Array2<Float>,
+    output: Array2<Float>,
+    grad: Array2<Float>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct NN5Regression<Ow, Ob>
+where
+    Ow: Optimizer<Ix2>,
+    Ob: Optimizer<Ix1>,
+{
+    nn: Layers<DenseNN5<Ow, Ob>, Dense<Ow, Ob>>,
+    input: Array2<Float>,
+    output: Array2<Float>,
+    grad: Array2<Float>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct NN6Regression<Ow, Ob>
+where
+    Ow: Optimizer<Ix2>,
+    Ob: Optimizer<Ix1>,
+{
+    nn: Layers<DenseNN6<Ow, Ob>, Dense<Ow, Ob>>,
     input: Array2<Float>,
     output: Array2<Float>,
     grad: Array2<Float>,
@@ -120,6 +146,8 @@ macro_rules! clone_build_nn {
 clone_build_nn!(build_nn2, DenseNN2, build_nn1, 2);
 clone_build_nn!(build_nn3, DenseNN3, build_nn2, 3);
 clone_build_nn!(build_nn4, DenseNN4, build_nn3, 4);
+clone_build_nn!(build_nn5, DenseNN5, build_nn4, 5);
+clone_build_nn!(build_nn6, DenseNN6, build_nn5, 6);
 
 fn decode_nn1<R, Ow, Ob>(
     reader: &mut R,
@@ -158,6 +186,8 @@ macro_rules! clone_decode_nn {
 clone_decode_nn!(decode_nn2, DenseNN2, decode_nn1);
 clone_decode_nn!(decode_nn3, DenseNN3, decode_nn2);
 clone_decode_nn!(decode_nn4, DenseNN4, decode_nn3);
+clone_decode_nn!(decode_nn5, DenseNN5, decode_nn4);
+clone_decode_nn!(decode_nn6, DenseNN6, decode_nn5);
 
 fn decode_output<R, Ow, Ob>(
     reader: &mut R,
@@ -344,6 +374,8 @@ macro_rules! impl_nn {
 impl_nn!(NN2Regression, build_nn2, decode_nn2, 2);
 impl_nn!(NN3Regression, build_nn3, decode_nn3, 3);
 impl_nn!(NN4Regression, build_nn4, decode_nn4, 4);
+impl_nn!(NN5Regression, build_nn5, decode_nn5, 5);
+impl_nn!(NN6Regression, build_nn6, decode_nn6, 6);
 
 #[cfg(test)]
 mod tests {
