@@ -72,16 +72,19 @@ where
     L1: Layer,
     L2: Layer,
 {
+    #[inline]
     fn forward(&mut self, input: &Array2<Float>, output: &mut Array2<Float>) {
         self.layer1.forward(input, &mut self.temporary);
         self.layer2.forward(&self.temporary, output);
     }
 
+    #[inline]
     fn backward(&mut self, input: &Array2<Float>, output: &mut Array2<Float>) {
         self.layer2.backward(input, &mut self.temporary);
         self.layer1.backward(&self.temporary, output);
     }
 
+    #[inline]
     fn update(&mut self) {
         self.layer2.update();
         self.layer1.update();
@@ -196,9 +199,8 @@ where
     }
 
     fn backward(&mut self, input: &Array2<Float>, output: &mut Array2<Float>) {
-        // Zero fill (Any more good way?)
-        Zip::from(&mut self.grad_w).apply(|w| *w = 0.0);
-        Zip::from(&mut self.grad_b).apply(|b| *b = 0.0);
+        self.grad_w.fill(0.0);
+        self.grad_b.fill(0.0);
         // ∂L/∂b = ∂L/∂y
         Zip::from(input.genrows()).apply(|input| {
             Zip::from(&mut self.grad_b).and(&input).apply(|db, &y| {
