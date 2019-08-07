@@ -5,6 +5,10 @@ use ndarray::Array1;
 use super::layer::*;
 use crate::Float;
 
+pub trait Regression {
+    fn predict(&mut self, x: &Array1<Float>) -> Float;
+}
+
 type DenseNN1 = Layers<Dense, ReLU>;
 type DenseNN2 = Layers<Layers<DenseNN1, Dense>, ReLU>;
 type DenseNN3 = Layers<Layers<DenseNN2, Dense>, ReLU>;
@@ -76,8 +80,10 @@ impl NN1Regression {
             output: Array1::zeros(1),
         }
     }
+}
 
-    pub fn predict(&mut self, x: &Array1<Float>) -> Float {
+impl Regression for NN1Regression {
+    fn predict(&mut self, x: &Array1<Float>) -> Float {
         self.nn.forward(x, &mut self.output);
         self.output[0]
     }
@@ -93,8 +99,10 @@ macro_rules! impl_nn {
                     output: Array1::zeros(1),
                 }
             }
+        }
 
-            pub fn predict(&mut self, x: &Array1<Float>) -> Float {
+        impl Regression for $name {
+            fn predict(&mut self, x: &Array1<Float>) -> Float {
                 self.nn.forward(x, &mut self.output);
                 self.output[0]
             }

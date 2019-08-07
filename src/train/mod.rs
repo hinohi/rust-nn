@@ -1,7 +1,7 @@
 mod layer;
-mod model;
 mod optimizer;
+mod regression;
 
 pub use layer::*;
-pub use model::*;
 pub use optimizer::*;
+pub use regression::*;

@@ -1,5 +1,5 @@
 mod layer;
-mod model;
+mod regression;
 
 pub use layer::*;
-pub use model::*;
+pub use regression::*;

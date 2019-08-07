@@ -7,6 +7,10 @@ use rand_pcg::Mcg128Xsl64;
 use super::{layer::*, optimizer::Optimizer};
 use crate::Float;
 
+pub trait Regression {
+    fn train(&mut self, x: &Array2<Float>, t: &Array2<Float>) -> Float;
+}
+
 type DenseNN1<Ow, Ob> = Layers<Dense<Ow, Ob>, ReLU>;
 type DenseNN2<Ow, Ob> = Layers<Layers<DenseNN1<Ow, Ob>, Dense<Ow, Ob>>, ReLU>;
 type DenseNN3<Ow, Ob> = Layers<Layers<DenseNN2<Ow, Ob>, Dense<Ow, Ob>>, ReLU>;
@@ -248,22 +252,6 @@ where
         Self::with_random(&mut random, shape, batch_size, opt_w, opt_b)
     }
 
-    pub fn train(&mut self, x: &Array2<Float>, t: &Array2<Float>) -> Float {
-        self.nn.forward(x, &mut self.output);
-        let mut loss = 0.0;
-        Zip::from(&mut self.grad)
-            .and(&self.output)
-            .and(t)
-            .apply(|grad, &y, &t| {
-                let x = y - t;
-                loss += x * x * 0.5;
-                *grad = x;
-            });
-        self.nn.backward(&self.grad, &mut self.input);
-        self.nn.update();
-        loss / self.nn.batch_size() as Float
-    }
-
     pub fn decode<R: Read>(
         reader: &mut R,
         batch_size: usize,
@@ -283,6 +271,28 @@ where
 
     pub fn encode<W: Write>(&self, writer: &mut W) {
         self.nn.encode(writer);
+    }
+}
+
+impl<Ow, Ob> Regression for NN1Regression<Ow, Ob>
+where
+    Ow: Optimizer<Ix2> + Clone,
+    Ob: Optimizer<Ix1> + Clone,
+{
+    fn train(&mut self, x: &Array2<Float>, t: &Array2<Float>) -> Float {
+        self.nn.forward(x, &mut self.output);
+        let mut loss = 0.0;
+        Zip::from(&mut self.grad)
+            .and(&self.output)
+            .and(t)
+            .apply(|grad, &y, &t| {
+                let x = y - t;
+                loss += x * x;
+                *grad = x * 0.5;
+            });
+        self.nn.backward(&self.grad, &mut self.input);
+        self.nn.update();
+        loss / self.nn.batch_size() as Float
     }
 }
 
@@ -348,7 +358,17 @@ macro_rules! impl_nn {
                 }
             }
 
-            pub fn train(&mut self, x: &Array2<Float>, t: &Array2<Float>) -> Float {
+            pub fn encode<W: Write>(&self, writer: &mut W) {
+                self.nn.encode(writer);
+            }
+        }
+
+        impl<Ow, Ob> Regression for $name<Ow, Ob>
+        where
+            Ow: Optimizer<Ix2> + Clone,
+            Ob: Optimizer<Ix1> + Clone,
+        {
+            fn train(&mut self, x: &Array2<Float>, t: &Array2<Float>) -> Float {
                 self.nn.forward(x, &mut self.output);
                 let mut loss = 0.0;
                 Zip::from(&mut self.grad)
@@ -356,16 +376,12 @@ macro_rules! impl_nn {
                     .and(t)
                     .apply(|grad, &y, &t| {
                         let x = y - t;
-                        loss += x * x * 0.5;
-                        *grad = x;
+                        loss += x * x;
+                        *grad = x * 0.5;
                     });
                 self.nn.backward(&self.grad, &mut self.input);
                 self.nn.update();
                 loss / self.nn.batch_size() as Float
-            }
-
-            pub fn encode<W: Write>(&self, writer: &mut W) {
-                self.nn.encode(writer);
             }
         }
     };
