@@ -7,7 +7,7 @@ use ndarray::{arr2, Array2};
 use rand_pcg::Mcg128Xsl64;
 
 use rand::Rng;
-use rust_nn::train::{Adam, NN2Regression, NN4Regression, Regression, SGD};
+use rust_nn::train::*;
 use rust_nn::Float;
 
 const BATCH_SIZE: usize = 100;
@@ -46,6 +46,20 @@ fn nn2_sgd(b: &mut Bencher) {
 fn nn4_sgd(b: &mut Bencher) {
     let mut nn = NN4Regression::new(
         [INPUT_SIZE, 32, 32, 32, 32],
+        BATCH_SIZE,
+        SGD::default(),
+        SGD::default(),
+    );
+    let (x, t) = make_input();
+    b.iter(|| {
+        nn.train(&x, &t);
+    });
+}
+
+#[bench]
+fn nn6_sgd(b: &mut Bencher) {
+    let mut nn = NN6Regression::new(
+        [INPUT_SIZE, 128, 128, 128, 128, 128, 128],
         BATCH_SIZE,
         SGD::default(),
         SGD::default(),
