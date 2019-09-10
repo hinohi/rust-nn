@@ -1,6 +1,7 @@
 use std::marker::PhantomData;
 
 use ndarray::{Array, Dimension, ShapeBuilder, Zip};
+use ndarray_parallel::prelude::*;
 
 use crate::Float;
 
@@ -53,7 +54,7 @@ where
     }
 
     fn optimize(&mut self, param: &mut Array<Float, D>, grad: &Array<Float, D>) {
-        Zip::from(param).and(grad).apply(|p, &g| {
+        Zip::from(param).and(grad).par_apply(|p, &g| {
             *p -= g * self.learning_rate;
         })
     }

@@ -206,7 +206,7 @@ where
         self.grad_b.fill(0.0);
         // ∂L/∂b = ∂L/∂y
         Zip::from(input.genrows()).apply(|input| {
-            Zip::from(&mut self.grad_b).and(&input).par_apply(|db, &y| {
+            Zip::from(&mut self.grad_b).and(&input).apply(|db, &y| {
                 *db += y;
             });
         });
@@ -217,7 +217,7 @@ where
             .apply(|y, x| {
                 Zip::from(self.grad_w.genrows_mut())
                     .and(&y)
-                    .par_apply(|mut dw, y| {
+                    .apply(|mut dw, y| {
                         Zip::from(&mut dw).and(&x).apply(|dw, x| {
                             *dw += y * x;
                         })
@@ -265,16 +265,17 @@ pub struct ReLU {
 
 impl Layer for ReLU {
     fn forward(&mut self, input: &Array2<Float>, output: &mut Array2<Float>) {
-        Zip::from(&mut self.input)
+        Zip::from(output)
             .and(input)
-            .par_apply(|y, &x| *y = x);
-        Zip::from(output).and(input).par_apply(|y, &x| {
-            if 0.0 < x {
-                *y = x;
-            } else {
-                *y = 0.0;
-            }
-        });
+            .and(&mut self.input)
+            .par_apply(|y, &x, z| {
+                if 0.0 < x {
+                    *y = x;
+                } else {
+                    *y = 0.0;
+                }
+                *z = x;
+            });
     }
 
     fn backward(&mut self, input: &Array2<Float>, output: &mut Array2<Float>) {
