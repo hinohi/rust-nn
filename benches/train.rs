@@ -7,7 +7,7 @@ use ndarray::{arr2, Array2};
 use rand_pcg::Mcg128Xsl64;
 
 use rand::Rng;
-use rust_nn::train::{Adam, NN2Regression, NN4Regression, SGD};
+use rust_nn::train::{Adam, NN2Regression, NN4Regression, Regression, SGD};
 use rust_nn::Float;
 
 const BATCH_SIZE: usize = 100;
