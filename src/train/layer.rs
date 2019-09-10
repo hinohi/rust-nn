@@ -1,6 +1,7 @@
 use std::io::Write;
 
 use ndarray::{Array1, Array2, Ix1, Ix2, Zip};
+use ndarray_parallel::prelude::*;
 use rand::Rng;
 use rand_distr::{Distribution, Normal};
 
@@ -185,10 +186,12 @@ where
     Ob: Optimizer<Ix1>,
 {
     fn forward(&mut self, input: &Array2<Float>, output: &mut Array2<Float>) {
-        Zip::from(&mut self.input).and(input).apply(|x, &y| *x = y);
+        Zip::from(&mut self.input)
+            .and(input)
+            .par_apply(|x, &y| *x = y);
         Zip::from(output.genrows_mut())
             .and(input.genrows())
-            .apply(|mut output, input| {
+            .par_apply(|mut output, input| {
                 Zip::from(&mut output)
                     .and(self.w.genrows())
                     .and(&self.b)
@@ -200,13 +203,12 @@ where
 
     fn backward(&mut self, input: &Array2<Float>, output: &mut Array2<Float>) {
         self.grad_w.fill(0.0);
-        self.grad_b.fill(0.0);
         // ∂L/∂b = ∂L/∂y
-        Zip::from(input.genrows()).apply(|input| {
-            Zip::from(&mut self.grad_b).and(&input).apply(|db, &y| {
-                *db += y;
+        Zip::from(&mut self.grad_b)
+            .and(input.gencolumns())
+            .par_apply(|db, y| {
+                *db = y.sum();
             });
-        });
         // ∂L/∂W = ∂L/∂y x^T
         Zip::from(input.genrows())
             // borrow checker...
@@ -223,7 +225,7 @@ where
         // output
         Zip::from(output.genrows_mut())
             .and(input.genrows())
-            .apply(|mut output, input| {
+            .par_apply(|mut output, input| {
                 Zip::from(&mut output)
                     .and(self.w.t().genrows())
                     .apply(|y, w| {
@@ -262,21 +264,24 @@ pub struct ReLU {
 
 impl Layer for ReLU {
     fn forward(&mut self, input: &Array2<Float>, output: &mut Array2<Float>) {
-        Zip::from(&mut self.input).and(input).apply(|y, &x| *y = x);
-        Zip::from(output).and(input).apply(|y, &x| {
-            if 0.0 < x {
-                *y = x;
-            } else {
-                *y = 0.0;
-            }
-        });
+        Zip::from(output)
+            .and(input)
+            .and(&mut self.input)
+            .par_apply(|y, &x, z| {
+                if 0.0 < x {
+                    *y = x;
+                } else {
+                    *y = 0.0;
+                }
+                *z = x;
+            });
     }
 
     fn backward(&mut self, input: &Array2<Float>, output: &mut Array2<Float>) {
         Zip::from(output)
             .and(input)
             .and(&self.input)
-            .apply(|y, &x, &z| {
+            .par_apply(|y, &x, &z| {
                 if 0.0 < z {
                     *y = x;
                 } else {
