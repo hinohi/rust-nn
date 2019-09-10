@@ -4,8 +4,8 @@ use rand_pcg::Mcg128Xsl64;
 
 use rust_nn::Float;
 use rust_nn::{
-    predict,
-    train::{self, Adam, SGD},
+    predict::{self, Regression as PRegression},
+    train::{self, Adam, Regression as TRegression, SGD},
 };
 
 fn gen_case<R: Rng>(batch_size: usize, random: &mut R) -> (Array2<Float>, Array2<Float>) {
