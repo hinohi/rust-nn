@@ -4,7 +4,7 @@ use ndarray::{Array, Dimension, ShapeBuilder, Zip};
 
 use crate::Float;
 
-pub trait Optimizer<D>
+pub trait Optimizer<D>: Sync + Send
 where
     D: Dimension,
 {

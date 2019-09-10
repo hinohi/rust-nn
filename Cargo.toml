@@ -11,3 +11,4 @@ rand_distr = "*"
 rand_pcg = "*"
 serde = { version ="1.0", features = ["derive"] }
 rmp-serde = "*"
+ndarray-parallel = "*"
