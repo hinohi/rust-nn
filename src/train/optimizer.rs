@@ -155,6 +155,7 @@ where
     eps: Float,
     batch_factor: Float,
     time_step: Float,
+    time_step_delta: Float,
     m: Array<Float, D>,
     v: Array<Float, D>,
 }
@@ -171,6 +172,7 @@ where
             eps,
             batch_factor: 1.0,
             time_step: 0.0,
+            time_step_delta: 1e-3,
             m: Default::default(),
             v: Default::default(),
         }
@@ -193,6 +195,11 @@ where
 
     pub fn eps(mut self, eps: Float) -> Self {
         self.eps = eps;
+        self
+    }
+
+    pub fn time_step_delta(mut self, time_step_delta: Float) -> Self {
+        self.time_step_delta = time_step_delta;
         self
     }
 
@@ -228,7 +235,7 @@ where
 
     fn optimize(&mut self, param: &mut Array<Float, D>, grad: &Array<Float, D>) {
         // incr time
-        self.time_step += 1.0;
+        self.time_step += self.time_step_delta;
         // m_{t+1} = beta1 * m_{t} + (1 - beta1) * grad
         let beta = self.beta1;
         let beta_g = (1.0 - self.beta1) * self.batch_factor;
