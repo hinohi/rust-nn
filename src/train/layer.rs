@@ -259,7 +259,7 @@ where
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ReLU {
-    input: Array2<Float>,
+    input: Array2<bool>,
 }
 
 impl Layer for ReLU {
@@ -270,10 +270,11 @@ impl Layer for ReLU {
             .par_apply(|y, &x, z| {
                 if 0.0 < x {
                     *y = x;
+                    *z = true;
                 } else {
                     *y = 0.0;
+                    *z = false;
                 }
-                *z = x;
             });
     }
 
@@ -282,7 +283,7 @@ impl Layer for ReLU {
             .and(input)
             .and(&self.input)
             .par_apply(|y, &x, &z| {
-                if 0.0 < z {
+                if z {
                     *y = x;
                 } else {
                     *y = 0.0;
@@ -312,7 +313,7 @@ impl Layer for ReLU {
 impl ReLU {
     pub fn new(size: usize, batch: usize) -> ReLU {
         ReLU {
-            input: Array2::zeros((batch, size)),
+            input: Array2::from_elem((batch, size), false),
         }
     }
 }
