@@ -1,7 +1,6 @@
 use std::marker::PhantomData;
 
 use ndarray::{Array, Dimension, ShapeBuilder, Zip};
-use ndarray_parallel::prelude::*;
 
 use crate::Float;
 
@@ -54,7 +53,7 @@ where
     }
 
     fn optimize(&mut self, param: &mut Array<Float, D>, grad: &Array<Float, D>) {
-        Zip::from(param).and(grad).par_apply(|p, &g| {
+        Zip::from(param).and(grad).apply(|p, &g| {
             *p -= g * self.learning_rate;
         })
     }
@@ -124,7 +123,7 @@ where
         // h = ρ * h + (1 - ρ) * grad * grad
         let rho = self.rho;
         let rho_g = (1.0 - self.rho) * self.batch_factor * self.batch_factor;
-        Zip::from(&mut self.h).and(grad).par_apply(|h, &g| {
+        Zip::from(&mut self.h).and(grad).apply(|h, &g| {
             *h = rho * *h + rho_g * g * g;
         });
         // v = sqrt(s + e) / sqrt(h + e) * grad
@@ -137,7 +136,7 @@ where
             .and(&mut self.s)
             .and(&self.h)
             .and(grad)
-            .par_apply(|p, s, &h, &g| {
+            .apply(|p, s, &h, &g| {
                 let v = ((*s + eps) / (h + eps)).sqrt() * g * batch_factor;
                 *s = rho * *s + rho1 * v * v;
                 *p -= v;
@@ -242,20 +241,20 @@ where
         let beta_g = (1.0 - self.beta1) * self.batch_factor;
         Zip::from(&mut self.m)
             .and(grad)
-            .par_apply(|m, &g| *m = beta * *m + beta_g * g);
+            .apply(|m, &g| *m = beta * *m + beta_g * g);
         // v_{t+1} = beta2 * v_{t} + (1 - beta2) * grad * grad
         let beta = self.beta2;
         let beta_g = (1.0 - self.beta2) * self.batch_factor * self.batch_factor;
         Zip::from(&mut self.v)
             .and(grad)
-            .par_apply(|v, &g| *v = beta * *v + beta_g * g * g);
+            .apply(|v, &g| *v = beta * *v + beta_g * g * g);
         // param -= a * m / sqrt(v)
         let alpha = self.learning_rate();
         let eps = self.eps;
         Zip::from(param)
             .and(&self.m)
             .and(&self.v)
-            .par_apply(|p, &m, &v| {
+            .apply(|p, &m, &v| {
                 *p -= alpha * m / (v.sqrt() + eps);
             });
     }
