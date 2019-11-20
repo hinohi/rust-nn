@@ -1,17 +1,13 @@
-#![feature(test)]
-
-extern crate test;
-use test::Bencher;
+use criterion::{criterion_group, criterion_main, Criterion};
 
 use ndarray::{arr2, Array2};
 use rand_pcg::Mcg128Xsl64;
 
 use rand::Rng;
-use rust_nn::train::*;
-use rust_nn::Float;
+use rust_nn::{train::*, Float};
 
-const BATCH_SIZE: usize = 100;
-const INPUT_SIZE: usize = 8;
+const BATCH_SIZE: usize = 128;
+const INPUT_SIZE: usize = 12;
 
 fn make_input() -> (Array2<Float>, Array2<Float>) {
     let mut random = Mcg128Xsl64::new(1);
@@ -28,8 +24,7 @@ fn make_input() -> (Array2<Float>, Array2<Float>) {
     (arr2(&x), arr2(&t))
 }
 
-#[bench]
-fn nn2_sgd(b: &mut Bencher) {
+fn nn2_16_sgd(c: &mut Criterion) {
     let mut nn = NN2Regression::new(
         [INPUT_SIZE, 16, 16],
         BATCH_SIZE,
@@ -37,41 +32,29 @@ fn nn2_sgd(b: &mut Bencher) {
         SGD::default(),
     );
     let (x, t) = make_input();
-    b.iter(|| {
-        nn.train(&x, &t);
+    c.bench_function("nn2_16_sgd", |b| {
+        b.iter(|| {
+            nn.train(&x, &t);
+        });
     });
 }
 
-#[bench]
-fn nn4_sgd(b: &mut Bencher) {
-    let mut nn = NN4Regression::new(
-        [INPUT_SIZE, 32, 32, 32, 32],
+fn nn2_32_sgd(c: &mut Criterion) {
+    let mut nn = NN2Regression::new(
+        [INPUT_SIZE, 32, 32],
         BATCH_SIZE,
         SGD::default(),
         SGD::default(),
     );
     let (x, t) = make_input();
-    b.iter(|| {
-        nn.train(&x, &t);
+    c.bench_function("nn2_32_sgd", |b| {
+        b.iter(|| {
+            nn.train(&x, &t);
+        });
     });
 }
 
-#[bench]
-fn nn6_sgd(b: &mut Bencher) {
-    let mut nn = NN6Regression::new(
-        [INPUT_SIZE, 128, 128, 128, 128, 128, 128],
-        BATCH_SIZE,
-        SGD::default(),
-        SGD::default(),
-    );
-    let (x, t) = make_input();
-    b.iter(|| {
-        nn.train(&x, &t);
-    });
-}
-
-#[bench]
-fn nn2_adam(b: &mut Bencher) {
+fn nn2_16_adam(c: &mut Criterion) {
     let mut nn = NN2Regression::new(
         [INPUT_SIZE, 16, 16],
         BATCH_SIZE,
@@ -79,21 +62,27 @@ fn nn2_adam(b: &mut Bencher) {
         Adam::default(),
     );
     let (x, t) = make_input();
-    b.iter(|| {
-        nn.train(&x, &t);
+    c.bench_function("nn2_16_adam", |b| {
+        b.iter(|| {
+            nn.train(&x, &t);
+        });
     });
 }
 
-#[bench]
-fn nn4_adam(b: &mut Bencher) {
-    let mut nn = NN4Regression::new(
-        [INPUT_SIZE, 32, 32, 32, 32],
+fn nn2_32_adam(c: &mut Criterion) {
+    let mut nn = NN2Regression::new(
+        [INPUT_SIZE, 32, 32],
         BATCH_SIZE,
         Adam::default(),
         Adam::default(),
     );
     let (x, t) = make_input();
-    b.iter(|| {
-        nn.train(&x, &t);
+    c.bench_function("nn2_32_adam", |b| {
+        b.iter(|| {
+            nn.train(&x, &t);
+        });
     });
 }
+
+criterion_group!(benches, nn2_16_sgd, nn2_32_sgd, nn2_16_adam, nn2_32_adam);
+criterion_main!(benches);
