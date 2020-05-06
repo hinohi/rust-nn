@@ -1,9 +1,9 @@
 use criterion::{criterion_group, criterion_main, Criterion};
 
 use ndarray::{arr2, Array2};
+use rand::Rng;
 use rand_pcg::Mcg128Xsl64;
 
-use rand::Rng;
 use rust_nn::{train::*, Float};
 
 const BATCH_SIZE: usize = 128;
