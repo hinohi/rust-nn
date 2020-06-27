@@ -28,7 +28,8 @@ fn main() {
     let mut model =
         train::NN2Regression::new([2, 5, 5], batch_size, SGD::default(), SGD::default());
 
-    for _ in 1..=100 {
+    // train
+    for _ in 1..=1000 {
         let (x, t) = gen_case(batch_size, &mut random);
         model.train(&x, &t);
     }
@@ -43,30 +44,34 @@ fn main() {
         train::NN2Regression::decode(
             &mut reader,
             batch_size * 2,
-            Adam::default(),
-            Adam::default(),
+            Adam::default().alpha(1e-3),
+            Adam::default().alpha(1e-3),
         )
     };
 
     // Re-train
-    for _ in 1..=100 {
+    for _ in 1..=1000 {
         let (x, t) = gen_case(batch_size * 2, &mut random);
         model.train(&x, &t);
     }
 
-    // load
+    // save2
+    let mut writer = Vec::new();
+    model.encode(&mut writer);
+
+    // load for predict
     let mut model = {
         let mut reader = &writer[..];
         predict::NN2Regression::new(&mut reader)
     };
 
-    // 検証
-    for x in -100..=100 {
-        let x = x as Float / 100.0;
-        for y in -100..=100 {
-            let y = y as Float / 100.0;
+    // test
+    for x in -4..=4 {
+        let x = x as Float / 4.0;
+        for y in -4..=4 {
+            let y = y as Float / 4.0;
             let t = model.predict(&mut arr1(&[x, y]));
-            println!("{} {} {}", x, y, t);
+            println!("{:5.2} {:5.2} {:6.3}", x, y, t);
         }
         print!("\n\n");
     }
