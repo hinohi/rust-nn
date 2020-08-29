@@ -60,6 +60,76 @@ where
 }
 
 #[derive(Debug, Clone)]
+pub struct MomentumSGD<D>
+where
+    D: Dimension,
+{
+    learning_rate: Float,
+    beta: Float,
+    batch_factor: Float,
+    v: Array<Float, D>,
+}
+
+impl<D> MomentumSGD<D>
+where
+    D: Dimension,
+{
+    fn new(learning_rate: Float, beta: Float) -> MomentumSGD<D> {
+        MomentumSGD {
+            learning_rate,
+            beta,
+            batch_factor: 1.0,
+            v: Default::default(),
+        }
+    }
+
+    pub fn learning_rate(mut self, learning_rate: Float) -> Self {
+        self.learning_rate = learning_rate;
+        self
+    }
+
+    pub fn beta(mut self, beta: Float) -> Self {
+        self.beta = beta;
+        self
+    }
+}
+
+impl<D> Default for MomentumSGD<D>
+where
+    D: Dimension,
+{
+    fn default() -> MomentumSGD<D> {
+        MomentumSGD::new(1e-3, 0.5)
+    }
+}
+
+impl<D> Optimizer<D> for MomentumSGD<D>
+where
+    D: Dimension,
+{
+    fn init<Sh>(&mut self, shape: Sh, batch_size: usize)
+    where
+        Sh: ShapeBuilder<Dim = D>,
+    {
+        let shape = shape.into_shape();
+        self.v = Array::zeros(shape);
+        self.learning_rate /= batch_size as Float;
+        self.batch_factor = 1.0 / batch_size as Float;
+    }
+
+    fn optimize(&mut self, param: &mut Array<Float, D>, grad: &Array<Float, D>) {
+        let beta0 = self.beta;
+        let beta1 = (1.0 - self.beta) * self.batch_factor;
+        Zip::from(&mut self.v).and(grad).apply(|v, &g| {
+            *v = beta0 * *v + beta1 * g;
+        });
+        Zip::from(param).and(&self.v).apply(|p, &v| {
+            *p -= v * self.learning_rate;
+        })
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct AdaDelta<D>
 where
     D: Dimension,
