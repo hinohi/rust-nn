@@ -24,7 +24,7 @@ fn main() {
             let mut input = Vec::with_capacity(batch_size);
             let mut ans = Vec::with_capacity(batch_size);
             for _ in 0..batch_size {
-                let a = random.gen_range(-5.0, 5.0);
+                let a = random.gen_range(-5.0..=5.0);
                 input.push([a]);
                 ans.push(-a);
             }

@@ -11,8 +11,8 @@ fn gen_case<R: Rng>(batch_size: usize, random: &mut R) -> (Array2<Float>, Array2
     let mut x = Vec::with_capacity(batch_size);
     let mut t = Vec::with_capacity(batch_size);
     for _ in 0..batch_size {
-        let a = random.gen_range(-3.0, 3.0);
-        let b = random.gen_range(-3.0, 3.0);
+        let a = random.gen_range(-3.0..=3.0);
+        let b = random.gen_range(-3.0..=3.0);
         let c = target_func(a, b);
         x.push([a, b]);
         t.push([c]);

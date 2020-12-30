@@ -23,8 +23,8 @@ fn main() {
             let mut x = Vec::with_capacity(batch_size);
             let mut t = Vec::with_capacity(batch_size);
             for _ in 0..batch_size {
-                let a = random.gen_range(-2.0, 2.0);
-                let b = random.gen_range(-2.0, 2.0);
+                let a = random.gen_range(-2.0..=2.0);
+                let b = random.gen_range(-2.0..=2.0);
                 let c = a * b;
                 x.push([a, b]);
                 t.push([c]);

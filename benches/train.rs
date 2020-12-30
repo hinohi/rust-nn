@@ -16,10 +16,10 @@ fn make_input() -> (Array2<Float>, Array2<Float>) {
     for _ in 0..BATCH_SIZE {
         let mut row = [0.0; INPUT_SIZE];
         for r in row.iter_mut() {
-            *r = random.gen_range(-3.0, 3.0);
+            *r = random.gen_range(-3.0..=3.0);
         }
         x.push(row);
-        t.push([random.gen_range(-3.0, 3.0)]);
+        t.push([random.gen_range(-3.0..=3.0)]);
     }
     (arr2(&x), arr2(&t))
 }
